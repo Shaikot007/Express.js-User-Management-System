@@ -1,11 +1,13 @@
 const express = require('express');
-const app = express()
-const port = 3000
+const userRoutes = require("./routes/userRoutes");
 
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+const app = express();
+const port = 3000;
+
+app.use(express.json());
+
+app.use("/", userRoutes);
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`User management system listening on port ${port}`)
+});
