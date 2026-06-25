@@ -111,11 +111,28 @@ const getUserById = async (req, res) => {
   }
 };
 
+const loginUser = async (req, res) => {
+  try {
+    // Authentication logic here (e.g., checking credentials)
+    
+    // Return a JSON success response
+    return res.status(200).json({
+      message: "User login successful"
+    });
+  } 
+  catch (error) {
+    return res.status(500).json({ 
+      message: "Internal server error" 
+    });
+  }
+};
+
 module.exports = {
   createUser,
   readUser,
   updateUser,
   deleteUser,
   getAllUsers,
-  getUserById
+  getUserById,
+  loginUser
 };
