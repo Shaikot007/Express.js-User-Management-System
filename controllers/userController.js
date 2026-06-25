@@ -111,18 +111,20 @@ const getUserById = async (req, res) => {
   }
 };
 
-const loginUser = async (req, res) => {
+const updateProfile = async (req, res) => {
   try {
-    // Authentication logic here (e.g., checking credentials)
+    // Your logic to update the user goes here
     
-    // Return a JSON success response
-    return res.status(200).json({
-      message: "User login successful"
+    // Return success response
+    return res.status(200).json({ 
+      message: "User profile updated successfully" 
     });
   } 
   catch (error) {
+    // Handle errors appropriately
     return res.status(500).json({ 
-      message: "Internal server error" 
+      message: "An error occurred while updating the profile", 
+      error: error.message 
     });
   }
 };
@@ -134,5 +136,5 @@ module.exports = {
   deleteUser,
   getAllUsers,
   getUserById,
-  loginUser
+  updateProfile
 };
