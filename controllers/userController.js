@@ -136,15 +136,15 @@ const loginUser = async (req, res) => {
     //   message: "User login successful",
     //   token: token
     // });
-    
+
     // Return a JSON success response
     return res.status(200).json({
       message: "User login successful"
     });
-  } 
+  }
   catch (error) {
-    return res.status(500).json({ 
-      message: "Internal server error" 
+    return res.status(500).json({
+      message: "Internal server error"
     });
   }
 };
@@ -162,7 +162,7 @@ const logoutUser = async (req, res) => {
       success: true,
       message: "User logout successful",
     });
-  } 
+  }
   catch (error) {
     return res.status(500).json({
       success: false,
@@ -195,14 +195,14 @@ const changePassword = async (req, res) => {
     // await user.save();
 
     // Return a JSON success response
-    return res.status(200).json({ 
-        message: "Password changed successfully" 
+    return res.status(200).json({
+      message: "Password changed successfully"
     });
-  } 
+  }
   catch (error) {
     console.error(error);
-    return res.status(500).json({ 
-        message: "Internal server error" 
+    return res.status(500).json({
+      message: "Internal server error"
     });
   }
 };
@@ -226,51 +226,51 @@ const updateProfile = async (req, res) => {
 };
 
 const makeAdmin = async (req, res) => {
-	try {
-		const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-		// Find the user and update their role/admin status
-		// const updatedUser = await User.findByIdAndUpdate(
-		// 	userId,
-		// 	{ role: 'admin' },
-		// 	{ new: true }
-		// );
+    // Find the user and update their role/admin status
+    // const updatedUser = await User.findByIdAndUpdate(
+    // 	userId,
+    // 	{ role: 'admin' },
+    // 	{ new: true }
+    // );
 
-		// if (!updatedUser) {
-		// 	return res.status(404).json({
-		// 		message: 'User not found'
-		// 	});
-		// }
+    // if (!updatedUser) {
+    // 	return res.status(404).json({
+    // 		message: 'User not found'
+    // 	});
+    // }
 
-		// Return a JSON success response
-		res.status(200).json({
-			message: 'User made admin successfully'
-		});
-	}
-	catch (error) {
-		res.status(500).json({
-			message: 'Server error', error: error.message
-		});
-	}
+    // Return a JSON success response
+    res.status(200).json({
+      message: 'User made admin successfully'
+    });
+  }
+  catch (error) {
+    res.status(500).json({
+      message: 'Server error', error: error.message
+    });
+  }
 };
 
 const removeAdmin = async (req, res) => {
-	try {
-		const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-		// Add database logic here
-		// await User.findByIdAndUpdate(id, { role: "user" });
+    // Add database logic here
+    // await User.findByIdAndUpdate(id, { role: "user" });
 
-		res.status(200).json({
-			message: "Admin role removed successfully"
-		});
-	}
-	catch (error) {
-		res.status(500).json({
-			message: "An error occurred",
-			error: error.message
-		});
-	}
+    res.status(200).json({
+      message: "Admin role removed successfully"
+    });
+  }
+  catch (error) {
+    res.status(500).json({
+      message: "An error occurred",
+      error: error.message
+    });
+  }
 };
 
 const searchUsers = async (req, res) => {
@@ -332,6 +332,105 @@ const filterUsers = async (req, res) => {
   }
 };
 
+const blockUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Update the user's block status in the database using Mongoose/MongoDB
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { isBlocked: true },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      message: "User blocked successfully"
+    });
+  }
+  catch (error) {
+    res.status(500).json({
+      message: "Server error", error: error.message
+    });
+  }
+};
+
+const unblockUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Update user's block status in the database
+    const updatedUser = await User.findByIdAndUpdate(
+      id, 
+      { isBlocked: false }, 
+      { new: true } // Returns the updated document
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        message: "User not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User successfully unblocked',
+      user: updatedUser
+    });
+  } 
+  catch (error) {
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+
+const verifyEmail = async (req, res) => {
+  try {
+    // 1. Get the token from the request body
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ 
+        message: "Verification token is required." 
+      });
+    }
+
+    // 2. Find the user with this specific token
+    const user = await User.findOne({ 
+      verificationToken: token 
+    });
+
+    if (!user) {
+      return res.status(400).json({ 
+        message: "Invalid or expired verification token." 
+      });
+    }
+
+    // 3. Update the user's verification status and clear the token
+    user.isVerified = true;
+    user.verificationToken = undefined; // Clear token so it can't be reused
+    await user.save();
+
+    // 4. Return your success message
+    return res.status(200).json({ 
+      message: "Email verified successfully"
+    });
+  } 
+  catch (error) {
+    console.error("Email verification error:", error);
+    return res.status(500).json({ 
+      message: "Internal server error" 
+    });
+  }
+};
+
 module.exports = {
   createUser,
   readUser,
@@ -344,7 +443,10 @@ module.exports = {
   changePassword,
   updateProfile,
   makeAdmin,
-	removeAdmin,
+  removeAdmin,
   searchUsers,
-  filterUsers
+  filterUsers,
+  blockUser,
+  unblockUser,
+  verifyEmail
 };

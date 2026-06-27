@@ -16,5 +16,8 @@ router.put("/make-admin/:id", userController.makeAdmin);
 router.put('/remove-admin/:id', userController.removeAdmin);
 router.get("/search", userController.searchUsers);
 router.get("/filter", userController.filterUsers);
+router.patch("/block-user/:id", userController.blockUser);
+router.patch("/unblock-user/:id", userController.unblockUser);
+router.post("/verify-email", userController.verifyEmail);
 
 module.exports = router;
