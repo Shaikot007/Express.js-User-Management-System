@@ -8,7 +8,13 @@ router.put("/update-user", userController.updateUser);
 router.put("/delete-user", userController.deleteUser);
 router.get("/all-users", userController.getAllUsers);
 router.get("/user/:id", userController.getUserById);
+router.post("/login", userController.loginUser);
+router.post("/logout", userController.logoutUser);
+router.put("/change-password", userController.changePassword);
 router.put("/update-profile", userController.updateProfile);
+router.put("/make-admin/:id", userController.makeAdmin);
+router.put('/remove-admin/:id', userController.removeAdmin);
 router.get("/search", userController.searchUsers);
+router.get("/filter", userController.filterUsers);
 
 module.exports = router;
