@@ -129,6 +129,36 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const searchUsers = async (req, res) => {
+  try {
+    // 1. Get the search term from the query string (e.g., /search?q=alice)
+    const searchTerm = req.query.q || ''; 
+
+    // 2. Query database (using Mongoose)
+    const users = await User.find({
+      $or: [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { email: { $regex: searchTerm, $options: 'i' } }
+      ]
+    });
+
+    // 3. Send the successful response with the user data
+    res.status(200).json({
+      success: true,
+      message: "User search completed successfully",
+      count: users.length,
+      data: users // This returns the actual array of found users
+    });
+  } 
+  catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "An error occurred during the search",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createUser,
   readUser,
@@ -136,5 +166,6 @@ module.exports = {
   deleteUser,
   getAllUsers,
   getUserById,
-  updateProfile
+  updateProfile,
+  searchUsers
 };

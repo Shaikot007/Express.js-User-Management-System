@@ -30,22 +30,22 @@ const makeAdmin = async (req, res) => {
 };
 
 const removeAdmin = async (req, res) => {
-  try {
-    const { id } = req.params;
+	try {
+		const { id } = req.params;
 
-    // Add database logic here
-    // await User.findByIdAndUpdate(id, { role: "user" });
+		// Add database logic here
+		// await User.findByIdAndUpdate(id, { role: "user" });
 
-    res.status(200).json({ 
-			message: "Admin role removed successfully" 
+		res.status(200).json({
+			message: "Admin role removed successfully"
 		});
-  } 
+	}
 	catch (error) {
-    res.status(500).json({ 
-			message: "An error occurred", 
-			error: error.message 
+		res.status(500).json({
+			message: "An error occurred",
+			error: error.message
 		});
-  }
+	}
 };
 
 module.exports = {
