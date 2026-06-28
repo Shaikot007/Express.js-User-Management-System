@@ -1,6 +1,11 @@
 // const User = require("../models/User");
 // const bcrypt = require("bcrypt");
 // const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const Token = require("../models/Token"); // Assuming you use a separate token/OTP model
+const sendEmail = require("../utils/sendEmail"); // Your email utility (e.g., Nodemailer/Resend)
+const multer = require("multer");
+const path = require("path");
 
 const createUser = (req, res) => {
   try {
@@ -366,13 +371,13 @@ const unblockUser = async (req, res) => {
 
     // Update user's block status in the database
     const updatedUser = await User.findByIdAndUpdate(
-      id, 
-      { isBlocked: false }, 
+      id,
+      { isBlocked: false },
       { new: true } // Returns the updated document
     );
 
     if (!updatedUser) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: "User not found"
       });
     }
@@ -382,11 +387,11 @@ const unblockUser = async (req, res) => {
       message: 'User successfully unblocked',
       user: updatedUser
     });
-  } 
+  }
   catch (error) {
-    res.status(500).json({ 
-      message: 'Server error', 
-      error: error.message 
+    res.status(500).json({
+      message: 'Server error',
+      error: error.message
     });
   }
 };
@@ -397,19 +402,19 @@ const verifyEmail = async (req, res) => {
     const { token } = req.body;
 
     if (!token) {
-      return res.status(400).json({ 
-        message: "Verification token is required." 
+      return res.status(400).json({
+        message: "Verification token is required."
       });
     }
 
     // 2. Find the user with this specific token
-    const user = await User.findOne({ 
-      verificationToken: token 
+    const user = await User.findOne({
+      verificationToken: token
     });
 
     if (!user) {
-      return res.status(400).json({ 
-        message: "Invalid or expired verification token." 
+      return res.status(400).json({
+        message: "Invalid or expired verification token."
       });
     }
 
@@ -419,14 +424,159 @@ const verifyEmail = async (req, res) => {
     await user.save();
 
     // 4. Return your success message
-    return res.status(200).json({ 
+    return res.status(200).json({
       message: "Email verified successfully"
+    });
+  }
+  catch (error) {
+    console.error("Email verification error:", error);
+    return res.status(500).json({
+      message: "Internal server error"
+    });
+  }
+};
+
+const resendVerification = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false, message: "Email is required."
+      });
+    }
+
+    // 1. Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found."
+      });
+    }
+
+    // 2. Check if already verified
+    if (user.isVerified) {
+      return res.status(400).json({
+        success: false, message: "Account is already verified."
+      });
+    }
+
+    // 3. Delete any previously generated pending tokens for this user
+    await Token.deleteMany({
+      userId: user._id
+    });
+
+    // 4. Create a new token and save to database
+    const tokenString = crypto.randomBytes(32).toString('hex');
+    const newToken = new Token({
+      userId: user._id,
+      token: tokenString,
+      createdAt: Date.now()
+    });
+    await newToken.save();
+
+    // 5. Construct verification link and send email
+    // Adjust the URL to match your frontend verification route
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${tokenString}&id=${user._id}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: 'Resend Verification Email',
+      html: `<p>Please verify your email by clicking the link below:</p><a href="${verificationUrl}">Verify Email</a>`
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Verification email resent successfully. Please check your inbox.'
+    });
+  }
+  catch (error) {
+    console.error('Error resending verification:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
+// Configure Multer Storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Destination folder (ensure this folder exists)
+  },
+  filename: function (req, file, cb) {
+    // Generate a unique filename to prevent overwriting
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+  }
+});
+
+// Initialize Multer
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+  fileFilter: function (req, file, cb) {
+    // Only accept image files
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+      return cb(new Error('Only image files are allowed!'), false);
+    }
+    cb(null, true);
+  }
+}).single("profilePicture"); // The field name in the frontend form
+
+// Upload Controller
+const uploadProfilePicture = (req, res) => {
+  upload(req, res, function (err) {
+    if (err instanceof multer.MulterError) {
+      // A Multer error occurred when uploading.
+      return res.status(400).json({ 
+        message: `Multer Error: ${err.message}` 
+      });
+    } 
+    else if (err) {
+      // An unknown error occurred.
+      return res.status(400).json({ 
+        message: err.message 
+      });
+    }
+    if (!req.file) {
+      return res.status(400).json({ 
+        message: "No file selected" 
+      });
+    }
+
+    // File successfully uploaded, save the file path to DB here if needed
+    // const filePath = req.file.path; 
+
+    // Return the required success message
+    res.status(200).json({ 
+      message: "Profile picture uploaded successfully"
+    });
+  });
+};
+
+const deleteAccount = async (req, res) => {
+  try {
+    // Assuming an auth middleware attaching the user ID to req.user
+    const { id } = req.user; 
+
+    // Find and delete the user from your database
+    const deletedUser = await User.findByIdAndDelete(id);
+
+    if (!deletedUser) {
+      return res.status(404).json({ 
+        message: "User not found" 
+      });
+    };
+
+    // Optional: Clear any authentication tokens/cookies here
+    res.clearCookie('token'); 
+
+    return res.status(200).json({ 
+      message: "Account deleted successfully" 
     });
   } 
   catch (error) {
-    console.error("Email verification error:", error);
     return res.status(500).json({ 
-      message: "Internal server error" 
+      message: "Server error", 
+      error: error.message 
     });
   }
 };
@@ -448,5 +598,8 @@ module.exports = {
   filterUsers,
   blockUser,
   unblockUser,
-  verifyEmail
+  verifyEmail,
+  resendVerification,
+  uploadProfilePicture,
+  deleteAccount
 };
